@@ -40,8 +40,8 @@ def _dart_vm_binary_impl(ctx):
   else:
     script_file = ctx.file.script_file
 
-  # Emit package spec.
-  package_spec = ctx.actions.declare_file(ctx.label.name + ".packages")
+  # Emit package config.
+  package_spec = ctx.actions.declare_file("package_config.json")
   package_spec_action(
       ctx=ctx,
       dart_ctx=dart_ctx,
@@ -115,8 +115,8 @@ def vm_snapshot_action(ctx, dart_ctx, output, vm_flags, script_file, script_args
   """Emits a Dart VM snapshot."""
   build_dir = ctx.label.name + ".build/"
 
-  # Emit package spec.
-  package_spec_path = ctx.label.package + "/" + ctx.label.name + ".packages"
+  # Emit package config.
+  package_spec_path = ctx.label.package + "/package_config.json"
   package_spec = ctx.actions.declare_file(build_dir + package_spec_path)
   package_spec_action(
       ctx=ctx,
@@ -184,8 +184,8 @@ def _dart_vm_test_impl(ctx):
                                data=ctx.files.data,
                                deps=ctx.attr.deps)
 
-  # Emit package spec.
-  package_spec = ctx.actions.declare_file(ctx.label.name + ".packages")
+  # Emit package config.
+  package_spec = ctx.actions.declare_file("package_config.json")
   package_spec_action(
       ctx=ctx,
       dart_ctx=dart_ctx,

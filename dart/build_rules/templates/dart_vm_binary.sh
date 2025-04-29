@@ -21,7 +21,11 @@ elif [[ -z "$RUNFILES" ]]; then
     export RUNFILES="$PWD"
   fi
 fi
+
+# Resolve paths relative to runfiles directory
 dart="$RUNFILES/%workspace%/%dart_vm%"
 package_spec="$RUNFILES/%workspace%/%package_spec%"
 script_file="$RUNFILES/%workspace%/%script_file%"
+
+# Run the Dart VM with the resolved paths
 "$dart" --packages="$package_spec" %vm_flags% "$script_file" %script_args% "$@"
