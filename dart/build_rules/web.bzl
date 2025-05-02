@@ -26,7 +26,7 @@ def dart2js_action(ctx, dart_ctx, script_file,
   build_dir = ctx.label.name + ".build/"
 
   # Emit package spec.
-  package_spec_path = ctx.label.package + "/package_config.json"
+  package_spec_path = ctx.label.package + "/" + ctx.label.name + ".package_config.json"
   package_spec = ctx.actions.declare_file(build_dir + package_spec_path)
   package_spec_action(
       ctx=ctx,
