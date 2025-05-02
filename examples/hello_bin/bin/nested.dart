@@ -3,7 +3,7 @@ import 'package:examples.goodbye_lib/goodbye.dart';
 
 main() async {
   var runfilesDir = Platform.environment['RUNFILES'];
-  var scriptPath = [runfilesDir, 'io_bazel_rules_dart', 'examples', 'hello_bin', 'hello_bin']
+  var scriptPath = [runfilesDir, '_main', 'examples', 'hello_bin', 'hello_bin']
       .join(Platform.pathSeparator);
 
   print('Script runfiles: $runfilesDir');
