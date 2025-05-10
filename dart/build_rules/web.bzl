@@ -18,10 +18,10 @@
 load(":internal.bzl", "collect_files", "layout_action", "make_dart_context", "package_spec_action")
 
 
-def dart2js_action(ctx, dart_ctx, script_file,
+def dart_compile_js_action(ctx, dart_ctx, script_file,
                    enable_asserts, csp, dump_info, minify, preserve_uris,
                    js_output, part_outputs, other_outputs):
-  """dart2js compile action."""
+  """dart compile js compile action."""
   # Create a build directory.
   build_dir = ctx.label.name + ".build/"
 
@@ -34,7 +34,7 @@ def dart2js_action(ctx, dart_ctx, script_file,
       output=package_spec,
   )
 
-  # Build a flattened directory of dart2js inputs, including inputs from the
+  # Build a flattened directory of dart compile js inputs, including inputs from the
   # src tree, genfiles, and bin.
   all_srcs, _ = collect_files(dart_ctx)
   build_dir_files = layout_action(
@@ -49,39 +49,37 @@ def dart2js_action(ctx, dart_ctx, script_file,
       build_dir_files.values() + [package_spec]
   )
   tools = (
-      ctx.files._dart2js +
-      ctx.files._dart2js_support
+      ctx.files._dart_compile_js +
+      ctx.files._dart_compile_js_support
   )
 
-  # Compute dart2js args.
-  dart2js_args = [
+  # Compute dart compile js args.
+  dart_compile_js_args = [
       "--packages=%s" % package_spec.path,
-      "--out=%s" % js_output.path,
+      "-o", js_output.path,
   ]
   if enable_asserts:
-    dart2js_args += ["--enable-asserts"]
+    dart_compile_js_args += ["--enable-asserts"]
   if csp:
-    dart2js_args += ["--csp"]
-  if dump_info:
-    dart2js_args += ["--dump-info"]
+    dart_compile_js_args += ["--csp"]
   if minify:
-    dart2js_args += ["--minify"]
-  if preserve_uris:
-    dart2js_args += ["--preserve-uris"]
-  dart2js_args += [out_script.path]
+    dart_compile_js_args += ["-O2"]  # Use -O2 for production builds
+  else:
+    dart_compile_js_args += ["-O0"]  # Use -O0 for debug builds
+  dart_compile_js_args += [out_script.path]
   ctx.actions.run(
       inputs=inputs,
       tools=tools,
-      executable=ctx.executable._dart2js_helper,
+      executable=ctx.executable._dart_compile_js_helper,
       arguments=[
           str(ctx.label),
           str(ctx.attr.deferred_lib_count),
           ctx.outputs.js.path,
-          ctx.executable._dart2js.path,
-      ] + dart2js_args,
+          ctx.executable._dart_compile_js.path,
+      ] + dart_compile_js_args,
       outputs=[js_output] + part_outputs + other_outputs,
-      progress_message="Compiling with dart2js %s" % ctx,
-      mnemonic="Dart2jsCompile",
+      progress_message="Compiling with dart compile js %s" % ctx,
+      mnemonic="DartCompileJs",
   )
 
 
@@ -98,23 +96,25 @@ def _dart_web_application_impl(ctx):
       ctx.outputs.deps_file,
       ctx.outputs.sourcemap,
   ]
-  if ctx.attr.dump_info:
-    other_outputs += [ctx.outputs.info_json]
+  # TODO move back dump_info, behavior changed
+  # if ctx.attr.dump_info:
+  #   other_outputs += [ctx.outputs.info_json]
+
   part_outputs = []
   for i in range(1, ctx.attr.deferred_lib_count + 1):
     part_outputs += [getattr(ctx.outputs, "part_js%s" % i)]
     other_outputs += [getattr(ctx.outputs, "part_sourcemap%s" % i)]
 
-  # Invoke dart2js.
-  dart2js_action(
+  # Invoke dart compile js.
+  dart_compile_js_action(
       ctx=ctx,
       dart_ctx=dart_ctx,
       script_file=ctx.file.script_file,
       enable_asserts=ctx.attr.enable_asserts,
       csp=ctx.attr.csp,
-      dump_info=ctx.attr.dump_info,
+      dump_info=False, # TODO move back dump_info, behavior changed
       minify=ctx.attr.minify,
-      preserve_uris=ctx.attr.preserve_uris,
+      preserve_uris=False,  # No longer supported
       js_output=js_output,
       part_outputs=part_outputs,
       other_outputs=other_outputs,
@@ -124,8 +124,6 @@ def _dart_web_application_impl(ctx):
   return struct()
 
 
-
-
 def _dart_web_application_outputs(dump_info, deferred_lib_count):
   """Returns the expected output map for dart_web_application."""
   outputs = {
@@ -133,8 +131,9 @@ def _dart_web_application_outputs(dump_info, deferred_lib_count):
       "deps_file": "%{name}.js.deps",
       "sourcemap": "%{name}.js.map",
   }
-  if dump_info:
-    outputs["info_json"] = "%{name}.js.info.json"
+  # TODO move back dump_info, behavior changed
+  # if dump_info:
+  #   outputs["info_json"] = "%{name}.js.info.json"
   for i in range(1, deferred_lib_count + 1):
     outputs["part_js%s" % i] = "%%{name}.js_%s.part.js" % i
     outputs["part_sourcemap%s" % i] = "%%{name}.js_%s.part.js.map" % i
@@ -152,23 +151,24 @@ dart_web_application = rule(
         # compiler flags
         "enable_asserts": attr.bool(default=False),
         "csp": attr.bool(default=False),
-        "dump_info": attr.bool(default=False),
+        # TODO move back dump_info, behavior changed
+        "dump_info": attr.bool(default=False),  # Kept for backward compatibility
         "minify": attr.bool(default=True),
-        "preserve_uris": attr.bool(default=False),
+        "preserve_uris": attr.bool(default=False),  # Kept for backward compatibility
         # tools
-        "_dart2js": attr.label(
+        "_dart_compile_js": attr.label(
             allow_single_file=True,
             executable=True,
             cfg="host",
-            default=Label("//dart/build_rules/ext:dart2js")),
-        "_dart2js_support": attr.label(
+            default=Label("//dart/build_rules/ext:dart_compile_js")),
+        "_dart_compile_js_support": attr.label(
             allow_files=True,
-            default=Label("//dart/build_rules/ext:dart2js_support")),
-        "_dart2js_helper": attr.label(
+            default=Label("//dart/build_rules/ext:dart_compile_js_support")),
+        "_dart_compile_js_helper": attr.label(
             allow_single_file=True,
             executable=True,
             cfg="host",
-            default=Label("//dart/build_rules/tools:dart2js_helper")),
+            default=Label("//dart/build_rules/tools:dart_compile_js_helper")),
     },
     outputs=_dart_web_application_outputs,
 )

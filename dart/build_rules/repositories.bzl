@@ -26,15 +26,14 @@ filegroup(
 )
 
 filegroup(
-  name = "dart2js",
-  srcs = ["dart-sdk/bin/dart2js"],
+  name = "dart_compile_js",
+  srcs = ["dart-sdk/bin/dart"],
 )
 
 filegroup(
-  name = "dart2js_support",
+  name = "dart_compile_js_support",
   srcs = glob([
       "dart-sdk/bin/dart",
-      "dart-sdk/bin/snapshots/dart2js.dart.snapshot",
       "dart-sdk/lib/**",
   ]),
 )
